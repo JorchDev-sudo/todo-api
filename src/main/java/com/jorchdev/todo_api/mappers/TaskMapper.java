@@ -5,7 +5,7 @@ import com.jorchdev.todo_api.entities.Task;
 import org.springframework.stereotype.Component;
 
 @Component
-public class CreateTaskMapper {
+public class TaskMapper {
     public Task toEntity(CreateTaskRequest taskRequest){
         Task newTask = new Task();
         newTask.setName(taskRequest.name);

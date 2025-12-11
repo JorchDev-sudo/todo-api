@@ -1,13 +1,14 @@
 package com.jorchdev.todo_api.mappers;
 
 import com.jorchdev.todo_api.dto.request.CreateUserRequest;
+import com.jorchdev.todo_api.dto.request.UpdateUserRequest;
 import com.jorchdev.todo_api.dto.response.UserResponse;
 import com.jorchdev.todo_api.entities.User;
 import org.springframework.stereotype.Component;
 
 @Component
-public class CreateUserMapper {
-    public User toEntity(CreateUserRequest userRequest){
+public class UserMapper {
+    public User toCreateEntity(CreateUserRequest userRequest){
         User newUser = new User();
         newUser.setName(userRequest.name);
 
@@ -21,5 +22,12 @@ public class CreateUserMapper {
                 user.getUserTasks());
 
         return userResponse;
+    }
+
+    public User toUpdateEntity(UpdateUserRequest updateUserRequest){
+        User updatedUser = new User();
+        updatedUser.setName(updatedUser.getName());
+
+        return updatedUser;
     }
 }
