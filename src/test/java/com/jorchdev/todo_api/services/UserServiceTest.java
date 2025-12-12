@@ -35,6 +35,21 @@ class UserServiceTest {
     private UserService userService;
 
     @Test
+    void shouldThrowExceptionWhenUserNotFound() {
+        // Arrange
+        Long userId = 999L;
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // Act
+        assertThatThrownBy(() -> userService.findUserByIdOrThrow(userId))
+                .isInstanceOf(EntityNotFoundException.class);
+
+        //Assert
+        verify(userRepository).findById(userId);
+    }
+
+    @Test
     void shouldFindAllUsers(){
         //Arrange
         User user1 = new User();
@@ -148,21 +163,31 @@ class UserServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenUserNotFound() {
-        // Arrange
-        Long userId = 999L;
-        UpdateUserRequest updateUserRequest = new UpdateUserRequest();
-        updateUserRequest.setName("Pepito");
+    void shouldDeleteUser(){
+        //Arrange
+        User userToDelete = new User();
+        userToDelete.setId(1L);
+        userToDelete.setName("Pepe");
 
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(userRepository.findById(1L)).thenReturn(Optional.of(userToDelete));
 
-        // Act
-        assertThatThrownBy(() -> userService.updateUser(userId, updateUserRequest))
-                .isInstanceOf(EntityNotFoundException.class);
+        //Act
+        userService.deleteUser(userToDelete.getId());
 
         //Assert
-        verify(userRepository).findById(userId);
-        verify(userRepository, never()).save(any(User.class));
-        verify(userMapper, never()).toResponse(any(User.class));
+        verify(userRepository).findById(userToDelete.getId());
+        verify(userRepository).deleteById(userToDelete.getId());
+    }
+
+    @Test
+    void shouldDeleteAllUsers() {
+        // Arrange
+        doNothing().when(userRepository).deleteAll();
+
+        // Act
+        userService.deleteAllUsers();
+
+        // Assert
+        verify(userRepository).deleteAll();
     }
 }

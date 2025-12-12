@@ -16,17 +16,16 @@ public class UserMapper {
     }
 
     public UserResponse toResponse(User user){
-        UserResponse userResponse = new UserResponse(
+
+        return new UserResponse(
                 user.getId(),
                 user.getName(),
                 user.getUserTasks());
-
-        return userResponse;
     }
 
     public User toUpdateEntity(UpdateUserRequest updateUserRequest){
         User updatedUser = new User();
-        updatedUser.setName(updatedUser.getName());
+        updatedUser.setName(updateUserRequest.name);
 
         return updatedUser;
     }

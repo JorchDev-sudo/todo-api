@@ -1,5 +1,6 @@
 package com.jorchdev.todo_api.entities;
 
+import com.jorchdev.todo_api.dto.response.TaskResponse;
 import jakarta.persistence.*;
 
 import java.util.List;
@@ -15,7 +16,7 @@ public class User {
     private String name;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Task> userTasks;
+    private List<TaskResponse> userTasks;
 
     public User(){}
 
@@ -33,10 +34,10 @@ public class User {
         return name;
     }
 
-    public void setUserTasks(List<Task> userTasks) {
+    public void setUserTasks(List<TaskResponse> userTasks) {
         this.userTasks = userTasks;
     }
-    public List<Task> getUserTasks() {
+    public List<TaskResponse> getUserTasks() {
         return userTasks;
     }
 }

@@ -21,6 +21,11 @@ public class UserService {
         this.userMapper = userMapper;
     }
 
+    public User findUserByIdOrThrow(Long id){
+        return userRepository.findById(id)
+                .orElseThrow(()-> new EntityNotFoundException("User not found"));
+    }
+
     public List<UserResponse> findAllUsers() {
         return userRepository.findAll()
                 .stream()
@@ -36,14 +41,20 @@ public class UserService {
     }
 
     public UserResponse updateUser(Long id, UpdateUserRequest updateUserRequest) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        User user = findUserByIdOrThrow(id);
+        user = userRepository.save(userMapper.toUpdateEntity(updateUserRequest));
 
-        user.setName(updateUserRequest.name);
+        return userMapper.toResponse(user);
+    }
 
-        User savedUser = userRepository.save(user);
+    public void deleteUser(Long id){
+        User user = findUserByIdOrThrow(id);
 
-        return userMapper.toResponse(savedUser);
+        userRepository.deleteById(id);
+    }
+
+    protected void deleteAllUsers(){
+        userRepository.deleteAll();
     }
 
 }
