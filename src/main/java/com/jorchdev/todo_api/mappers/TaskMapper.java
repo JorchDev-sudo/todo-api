@@ -1,6 +1,7 @@
 package com.jorchdev.todo_api.mappers;
 
 import com.jorchdev.todo_api.dto.request.CreateTaskRequest;
+import com.jorchdev.todo_api.dto.request.UpdateTaskRequest;
 import com.jorchdev.todo_api.dto.response.TaskResponse;
 import com.jorchdev.todo_api.entities.Task;
 import com.jorchdev.todo_api.entities.User;
@@ -26,5 +27,11 @@ public class TaskMapper {
                 task.getDescription(),
                 task.getStatus(),
                 task.getCreatedAt());
+    }
+
+    public Task toUpdateStatus(Task task ,UpdateTaskRequest updateTaskRequest){
+        task.setStatus(updateTaskRequest.taskStatus);
+
+        return task;
     }
 }
