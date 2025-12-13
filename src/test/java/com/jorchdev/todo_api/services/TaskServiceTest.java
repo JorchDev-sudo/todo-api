@@ -13,8 +13,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,43 +35,59 @@ public class TaskServiceTest {
     TaskService taskService;
 
     @Test
-    void shouldReturnUserTasks(){
+    void shouldReturnPagedUserTasks(){
         //Arrange
         User newUser = new User();
         newUser.setId(1L);
         newUser.setName("PepeWithTasks");
 
-        Task newTask = new Task();
-        newTask.setId(1L);
-        newTask.setOwnerShip(newUser);
-        newTask.setName("Jugar Lol");
+        Task task1 = new Task();
+        task1.setId(1L);
+        task1.setOwnerShip(newUser);
+        task1.setName("Task 1");
 
-        List<Task> userTasks = new ArrayList<>();
-        userTasks.add(newTask);
+        Task task2 = new Task();
+        task2.setId(2L);
+        task2.setName("Task 2");
 
-        when(taskRepository.findTasksByUserId(newUser.getId())).thenReturn(userTasks);
-        when(taskMapper.toResponse(newTask)).thenReturn(
-                new TaskResponse(
-                        1L,
-                        newUser,
-                        "Jugar Lol",
-                        null,
-                        Status.IN_PROGRESS,
-                        null));
+        TaskResponse taskResponse1 = new TaskResponse(
+                1L,
+                newUser,
+                "Task 1",
+                null,
+                Status.PENDING,
+                null);
+
+        TaskResponse taskResponse2 = new TaskResponse(
+                2L,
+                newUser,
+                "Task 2",
+                null,
+                Status.PENDING,
+                null);
+
+        Page<Task> taskPage = new PageImpl<>(List.of(task1, task2));
+
+        when(taskRepository.findByUserId(eq(newUser.getId()), any(Pageable.class)))
+                .thenReturn(taskPage);
+
+        when(taskMapper.toResponse(task1)).thenReturn(taskResponse1);
+        when(taskMapper.toResponse(task2)).thenReturn(taskResponse2);
 
         //Act
-        List<TaskResponse> resultTasks = taskService.findUserTasks(newUser.getId());
+        Page<TaskResponse> result = taskService.findUserTasks(
+                newUser.getId(),
+                0,
+                10,
+                "createdAt",
+                "desc");
 
         //Assert
-        assertThat(resultTasks).isNotNull();
-        assertThat(resultTasks).hasAtLeastOneElementOfType(TaskResponse.class);
-        assertThat(resultTasks.get(0).name()).isEqualTo(newTask.getName());
-        assertThat(resultTasks.get(0).id()).isEqualTo(newTask.getId());
-        assertThat(resultTasks.get(0).ownership()).isEqualTo(newUser);
-        assertThat(resultTasks.get(0).taskStatus()).isEqualTo(Status.IN_PROGRESS);
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getTotalElements()).isEqualTo(2);
 
-        verify(taskRepository.findTasksByUserId(newUser.getId()));
-        verify(taskMapper.toResponse(newTask));
+        verify(taskRepository).findByUserId(eq(newUser.getId()), any(Pageable.class));
+
     }
 
     @Test

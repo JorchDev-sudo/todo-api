@@ -8,26 +8,49 @@ import com.jorchdev.todo_api.entities.User;
 import com.jorchdev.todo_api.mappers.TaskMapper;
 import com.jorchdev.todo_api.repositories.TaskRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class TaskService {
     private final TaskRepository taskRepository;
     private final TaskMapper taskMapper;
+    private static final Set<String> VALID_SORT_FIELDS = Set.of(
+            "id",
+            "name",
+            "createdAt",
+            "status");
 
     public TaskService(TaskRepository taskRepository, TaskMapper taskMapper){
         this.taskRepository = taskRepository;
         this.taskMapper = taskMapper;
     }
 
-    public List<TaskResponse> findUserTasks(Long id) {
+    public Page<TaskResponse> findUserTasks(Long id,
+                                            int page,
+                                            int size,
+                                            String sortBy,
+                                            String direction) {
 
-        return taskRepository.findTasksByUserId(id)
-                .stream()
-                .map(taskMapper::toResponse)
-                .toList();
+        if (!VALID_SORT_FIELDS.contains(sortBy)) {
+            throw new IllegalArgumentException("Invalid sort field: " + sortBy);
+        }
+
+        Sort sort = direction.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Task> taskPage = taskRepository.findByUserId(id, pageable);
+
+        return taskPage.map(taskMapper::toResponse);
     }
 
     public TaskResponse createTask(User ownership, CreateTaskRequest createTaskRequest){

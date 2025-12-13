@@ -7,25 +7,39 @@ import com.jorchdev.todo_api.entities.User;
 import com.jorchdev.todo_api.mappers.UserMapper;
 import com.jorchdev.todo_api.repositories.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.Set;
 
 @Service
 public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private static final Set<String> VALID_SORT_FIELDS = Set.of("id", "name");
 
     public UserService(UserRepository userRepository, UserMapper userMapper){
         this.userRepository = userRepository;
         this.userMapper = userMapper;
     }
 
-    public List<UserResponse> findAllUsers() {
-        return userRepository.findAll()
-                .stream()
-                .map(userMapper::toResponse)
-                .toList();
+    public Page<UserResponse> findPagedUsers(int page, int size, String sortBy, String direction) {
+        if (!VALID_SORT_FIELDS.contains(sortBy)) {
+            throw new IllegalArgumentException("Invalid sort field: " + sortBy);
+        }
+
+        Sort sort = direction.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<User> usersPage = userRepository.findAll(pageable);
+
+        return usersPage.map(userMapper::toResponse);
     }
 
     public UserResponse createUser(CreateUserRequest userRequest){

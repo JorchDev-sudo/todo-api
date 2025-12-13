@@ -14,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +36,7 @@ class UserServiceTest {
     private UserService userService;
 
     @Test
-    void shouldFindAllUsers(){
+    void shouldFindAllPagedUsers(){
         //Arrange
         User user1 = new User();
         user1.setName("Pepe");
@@ -49,41 +50,65 @@ class UserServiceTest {
         UserResponse userResponse3 = new UserResponse(3L, "Popo", null);
 
         List<User> allUsers = List.of(user1, user2, user3);
+        Page<User> userPage = new PageImpl<>(allUsers);
 
-        when(userRepository.findAll()).thenReturn(allUsers);
+        when(userRepository.findAll(any(Pageable.class)))
+                .thenReturn(userPage);
+
         when(userMapper.toResponse(user1)).thenReturn(userResponse1);
         when(userMapper.toResponse(user2)).thenReturn(userResponse2);
         when(userMapper.toResponse(user3)).thenReturn(userResponse3);
 
-
         //Act
-        List<UserResponse> result = userService.findAllUsers();
+        Page<UserResponse> result = userService.findPagedUsers(
+                0,
+                10,
+                "id",
+                "desc");
 
         //Assert
-        assertThat(result).hasSize(3);
-        assertThat(result.get(0)).isEqualTo(userResponse1);
-        assertThat(result.get(1)).isEqualTo(userResponse2);
-        assertThat(result.get(2)).isEqualTo(userResponse3);
+        assertThat(result.getContent()).hasSize(3);
+        assertThat(result.getTotalElements()).isEqualTo(3);
+        assertThat(result.getTotalPages()).isEqualTo(1);
+        assertThat(result.getNumber()).isEqualTo(0);
+        assertThat(result.isFirst()).isTrue();
 
-        verify(userRepository).findAll();
-        verify(userMapper, times(3)).toResponse(any(User.class));
+        verify(userRepository).findAll(any(Pageable.class));
     }
 
     @Test
     void shouldReturnEmptyListWhenNoUsersExist() {
         //Arrange
         List<User> userList = new ArrayList<>();
+        Page<User> userPage = new PageImpl<>(userList);
 
-        when(userRepository.findAll()).thenReturn(userList);
+        Pageable pageable = PageRequest.of(1, 1);
+
+        when(userRepository.findAll(any(Pageable.class))).thenReturn(userPage);
 
         //Act
-        List<UserResponse> result = userService.findAllUsers();
+        Page<UserResponse> result = userService.findPagedUsers(1, 1, "id", "desc");
 
         //Assert
-        assertThat(result).isEmpty();
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(0);
 
-        verify(userRepository).findAll();
+        verify(userRepository).findAll(any(Pageable.class));
         verify(userMapper, never()).toResponse(any(User.class));
+    }
+    @Test
+    void shouldThrowExceptionWhenSortFieldIsInvalid() {
+        // Arrange
+        String invalidSortField = "invalidField";
+
+        // Act & Assert
+        assertThatThrownBy(() ->
+                userService.findPagedUsers(0, 10, invalidSortField, "asc")
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid sort field");
+
+        verify(userRepository, never()).findAll(any(Pageable.class));
     }
 
     @Test
