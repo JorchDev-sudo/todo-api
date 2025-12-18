@@ -5,9 +5,9 @@ import com.jorchdev.todo_api.dto.request.CreateUserRequest;
 import com.jorchdev.todo_api.dto.request.UpdateUserRequest;
 import com.jorchdev.todo_api.dto.response.UserResponse;
 import com.jorchdev.todo_api.entities.User;
+import com.jorchdev.todo_api.exceptions.ForbiddenException;
 import com.jorchdev.todo_api.mappers.UserMapper;
 import com.jorchdev.todo_api.repositories.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,6 +34,24 @@ class UserServiceTest {
 
     @InjectMocks
     private UserService userService;
+
+    @Test
+    void shouldReturnUser(){
+        //Arrange
+        User user = new User();
+        user.setId(1L);
+
+        Long id = 1L;
+
+        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        when(userMapper.toResponse(user)).thenReturn(new UserResponse(1L, null, null));
+        //Act
+        UserResponse result = userService.findUser(id);
+
+        //Assert
+        assertThat(result).isNotNull();
+        assertThat(result.id()).isEqualTo(user.getId());
+    }
 
     @Test
     void shouldFindAllPagedUsers(){
@@ -82,8 +100,6 @@ class UserServiceTest {
         List<User> userList = new ArrayList<>();
         Page<User> userPage = new PageImpl<>(userList);
 
-        Pageable pageable = PageRequest.of(1, 1);
-
         when(userRepository.findAll(any(Pageable.class))).thenReturn(userPage);
 
         //Act
@@ -96,6 +112,8 @@ class UserServiceTest {
         verify(userRepository).findAll(any(Pageable.class));
         verify(userMapper, never()).toResponse(any(User.class));
     }
+
+    //Remember to add to TaskServiceTest
     @Test
     void shouldThrowExceptionWhenSortFieldIsInvalid() {
         // Arrange
@@ -146,6 +164,8 @@ class UserServiceTest {
     @Test
     void shouldUpdateUserAndReturnAResponse(){
         //Arrange
+        Long principalId = 1L;
+
         User user = new User();
         user.setId(1L);
         user.setName("Pepe");
@@ -155,79 +175,72 @@ class UserServiceTest {
 
         UserResponse userResponse = new UserResponse(1L, "Pepito", null);
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findById(user.getId(), principalId)).thenReturn(Optional.of(user));
         when(userRepository.save(user)).thenReturn(user);
         when(userMapper.toResponse(user)).thenReturn(userResponse);
 
         //Act
-        UserResponse result = userService.updateUser(1L, updateUserRequest);
+        UserResponse result = userService.updateUser(user.getId(), principalId , updateUserRequest);
 
         //Assert
-        assertThat(result.id()).isEqualTo(1L);
-        assertThat(result.name()).isEqualTo("Pepito");
+        assertThat(result.id()).isEqualTo(principalId);
+        assertThat(result.name()).isEqualTo(user.getName());
 
-        verify(userRepository).findById(1L);
+        verify(userRepository).findById(user.getId(), principalId);
         verify(userRepository).save(user);
         verify(userMapper).toResponse(user);
 
     }
 
     @Test
-    void shouldThrowExceptionWhenUserNotFoundForUpdate() {
+    void shouldThrowExceptionWhenUserNotFoundOrPrincipalDoesNotOwn() {
         // Arrange
-        Long userId = 999L;
+        Long principalId = 1L;
+        Long userId = 10L;
         UpdateUserRequest updateUserRequest = new UpdateUserRequest();
 
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(userRepository.findById(userId, principalId)).thenReturn(Optional.empty());
 
-        // Act
-        assertThatThrownBy(() -> userService.updateUser(userId, updateUserRequest))
-                .isInstanceOf(EntityNotFoundException.class);
+        // Act and Assert
+        assertThatThrownBy(() -> userService.updateUser(userId, principalId, updateUserRequest))
+                .isInstanceOf(ForbiddenException.class)
+                        .hasMessageContaining("permission");
 
-        //Assert
         verify(userRepository).findById(userId);
     }
 
     @Test
     void shouldDeleteUser(){
         //Arrange
+        Long principalId = 1L;
+
         User userToDelete = new User();
         userToDelete.setId(1L);
         userToDelete.setName("Pepe");
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(userToDelete));
+        when(userRepository.findById(1L, principalId)).thenReturn(Optional.of(userToDelete));
 
         //Act
-        userService.deleteUser(userToDelete.getId());
+        userService.deleteUser(userToDelete.getId(), principalId);
 
         //Assert
-        verify(userRepository).findById(userToDelete.getId());
+        verify(userRepository).findById(userToDelete.getId(), principalId);
         verify(userRepository).deleteById(userToDelete.getId());
     }
     @Test
-    void shouldThrowExceptionWhenUserNotFoundForDelete() {
+    void shouldThrowExceptionWhenUserNotFoundForDeleteOrPrincipalDoesNotOwn() {
         // Arrange
-        Long userId = 999L;
+        Long principalId = 1L;
+        Long userId = 10L;
 
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(userRepository.findById(userId, principalId)).thenReturn(Optional.empty());
 
         // Act
-        assertThatThrownBy(() -> userService.deleteUser(userId))
-                .isInstanceOf(EntityNotFoundException.class);
+        assertThatThrownBy(() -> userService.deleteUser(userId, principalId))
+                .isInstanceOf(ForbiddenException.class)
+                        .hasMessageContaining("permission");
 
         //Assert
-        verify(userRepository).findById(userId);
-    }
-
-    @Test
-    void shouldDeleteAllUsers() {
-        // Arrange
-        doNothing().when(userRepository).deleteAll();
-
-        // Act
-        userService.deleteAllUsers();
-
-        // Assert
-        verify(userRepository).deleteAll();
+        verify(userRepository).findById(userId, principalId);
     }
 }
