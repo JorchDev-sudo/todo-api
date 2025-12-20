@@ -26,7 +26,7 @@ public class TaskMapperTest {
 
         Task result = taskMapper.toEntity(ownership, createTaskRequest);
 
-        assertThat(result.getOwnerShip()).isEqualTo(ownership);
+        assertThat(result.getUser()).isEqualTo(ownership);
 
     }
 

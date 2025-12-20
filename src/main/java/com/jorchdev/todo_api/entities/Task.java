@@ -21,11 +21,11 @@ public class Task {
     @Enumerated(EnumType.STRING)
     private Status status = Status.PENDING;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private final LocalDateTime createdAt = LocalDateTime.now();
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
-    private User ownerShip;
+    private User user;
 
     public Task(){}
 
@@ -50,11 +50,11 @@ public class Task {
         return description;
     }
 
-    public void setOwnerShip(User ownerShip) {
-        this.ownerShip = ownerShip;
+    public void setUser(User user) {
+        this.user = user;
     }
-    public User getOwnerShip() {
-        return ownerShip;
+    public User getUser() {
+        return user;
     }
 
     public void setStatus(Status status) {

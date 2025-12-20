@@ -9,6 +9,7 @@ import com.jorchdev.todo_api.entities.enums.Status;
 import com.jorchdev.todo_api.exceptions.ForbiddenException;
 import com.jorchdev.todo_api.mappers.TaskMapper;
 import com.jorchdev.todo_api.repositories.TaskRepository;
+import com.jorchdev.todo_api.repositories.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,7 +23,7 @@ import java.util.Set;
 @Service
 public class TaskService {
     private final TaskRepository taskRepository;
-    private final TaskMapper taskMapper;
+    private final UserRepository userRepository;
     private static final Set<String> VALID_SORT_FIELDS = Set.of(
             "id",
             "name",
@@ -38,18 +39,21 @@ public class TaskService {
         }
     }
 
-    public TaskService(TaskRepository taskRepository, TaskMapper taskMapper){
+    public TaskService(TaskRepository taskRepository, UserRepository userRepository){
         this.taskRepository = taskRepository;
-        this.taskMapper = taskMapper;
+        this.userRepository = userRepository;
     }
 
     public TaskResponse findTaskById(Long userId, Long taskId) {
-        Task task = taskRepository.findByIdAndOwnerShipId(userId, taskId)
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ForbiddenException("User not found"));
+
+        Task task = taskRepository.findByIdAndUser(taskId, user)
                 .orElseThrow(() -> new ForbiddenException(
                         "Task not found or you don't have permission"
                 ));
 
-        return taskMapper.toResponse(task);
+        return TaskMapper.toResponse(task);
     }
 
     public Page<TaskResponse> findUserTasks(
@@ -60,6 +64,9 @@ public class TaskService {
             String sortBy,
             String direction
     ) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ForbiddenException("User not found"));
 
         if (!VALID_SORT_FIELDS.contains(sortBy)) {
             throw new IllegalArgumentException("Invalid sort field: " + sortBy);
@@ -75,24 +82,24 @@ public class TaskService {
         Page<Task> taskPage;
 
         if (filterBy == null || filterBy.isEmpty()) {
-            taskPage = taskRepository.findByUserId(userId, pageable);
+            taskPage = taskRepository.findByUser(user, pageable);
 
         } else if (isValidStatus(filterBy)) {
             Status status = Status.valueOf(filterBy.toUpperCase());
-            taskPage = taskRepository.findByUserIdAndStatus(userId, status, pageable);
+            taskPage = taskRepository.findByUserAndStatus(user, status, pageable);
 
         } else if (filterBy.equalsIgnoreCase("createdToday")) {
             LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
             LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59);
-            taskPage = taskRepository.findByUserIdAndCreatedAtBetween(
-                    userId, startOfDay, endOfDay, pageable
+            taskPage = taskRepository.findByUserAndCreatedAtBetween(
+                    user, startOfDay, endOfDay, pageable
             );
 
         } else {
             throw new IllegalArgumentException("Invalid filter: " + filterBy);
         }
 
-        return taskPage.map(taskMapper::toResponse);
+        return taskPage.map(TaskMapper::toResponse);
     }
 
     public TaskResponse createTask(User ownership, CreateTaskRequest createTaskRequest){
@@ -100,26 +107,32 @@ public class TaskService {
             throw new IllegalArgumentException("Name cannot be empty");
         }
 
-        Task newTask = taskMapper.toEntity(ownership, createTaskRequest);
+        Task newTask = TaskMapper.toEntity(ownership, createTaskRequest);
         Task savedTask = taskRepository.save(newTask);
 
-        return  taskMapper.toResponse(savedTask);
+        return  TaskMapper.toResponse(savedTask);
     }
 
     public TaskResponse updateTaskStatus(Long userId, Long taskId, UpdateTaskRequest updateTaskRequest){
-        Task task = taskRepository.findByIdAndOwnerShipId(userId, taskId)
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ForbiddenException("User not found"));
+
+        Task task = taskRepository.findByIdAndUser(taskId, user)
                 .orElseThrow(() -> new ForbiddenException(
                         "Task not found or you don't have permission"
                 ));
 
-        taskMapper.toUpdateStatus(task, updateTaskRequest);
+        TaskMapper.toUpdateStatus(task, updateTaskRequest);
         taskRepository.save(task);
 
-        return taskMapper.toResponse(task);
+        return TaskMapper.toResponse(task);
     }
 
     public void deleteTask(Long userId, Long taskId){
-        Task task = taskRepository.findByIdAndOwnerShipId(userId, taskId)
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ForbiddenException("User not found"));
+
+        Task task = taskRepository.findByIdAndUser(taskId, user)
                 .orElseThrow(() -> new ForbiddenException(
                         "Task not found or you don't have permission"
                 ));

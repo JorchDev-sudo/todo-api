@@ -10,26 +10,25 @@ import org.springframework.stereotype.Component;
 @Component
 public class TaskMapper {
 
-    public Task toEntity(User ownership, CreateTaskRequest taskRequest){
+    public static Task toEntity(User ownership, CreateTaskRequest taskRequest){
         Task newTask = new Task();
         newTask.setName(taskRequest.name);
         newTask.setDescription(taskRequest.description);
-        newTask.setOwnerShip(ownership);
+        newTask.setUser(ownership);
 
         return newTask;
     }
 
-    public TaskResponse toResponse(Task task){
+    public static TaskResponse toResponse(Task task){
         return new TaskResponse(
                 task.getId(),
-                task.getOwnerShip(),
                 task.getName(),
                 task.getDescription(),
                 task.getStatus(),
                 task.getCreatedAt());
     }
 
-    public Task toUpdateStatus(Task task ,UpdateTaskRequest updateTaskRequest){
+    public static Task toUpdateStatus(Task task ,UpdateTaskRequest updateTaskRequest){
         task.setStatus(updateTaskRequest.taskStatus);
 
         return task;

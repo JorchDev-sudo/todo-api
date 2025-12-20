@@ -9,6 +9,7 @@ import com.jorchdev.todo_api.entities.enums.Status;
 import com.jorchdev.todo_api.exceptions.ForbiddenException;
 import com.jorchdev.todo_api.mappers.TaskMapper;
 import com.jorchdev.todo_api.repositories.TaskRepository;
+import com.jorchdev.todo_api.repositories.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,11 +25,12 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class TaskServiceTest {
-    @Mock
-    TaskMapper taskMapper;
 
     @Mock
     TaskRepository taskRepository;
+
+    @Mock
+    UserRepository userRepository;
 
     @InjectMocks
     TaskService taskService;
@@ -36,128 +38,109 @@ public class TaskServiceTest {
     @Test
     void shouldReturnATask(){
         //Arrange
+        User user = new User();
+
         Task task = new Task();
-        task.setId(1L);
+        task.setName("Jugar Lol");
+        task.setUser(user);
 
-        Long taskId = 1L;
-        Long userId = 10L;
+        when(taskRepository.findByIdAndUser(task.getId(), user)).thenReturn(Optional.of(task));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
-        when(taskRepository.findByIdAndOwnerShipId(userId, taskId)).thenReturn(Optional.of(task));
-        when(taskMapper.toResponse(task)).thenReturn(new TaskResponse(
-                1L,
-                null,
-                null,
-                null,
-                null,
-                null));
         //Act
-        TaskResponse result = taskService.findTaskById(10L, 1L);
+        TaskResponse result = taskService.findTaskById(user.getId(), task.getId());
 
         //Assert
-        assertThat(result.id()).isEqualTo(taskId);
+        assertThat(result.id()).isEqualTo(task.getId());
 
-        verify(taskRepository).findByIdAndOwnerShipId(userId, taskId);
-        verify(taskMapper).toResponse(task);
+        verify(taskRepository).findByIdAndUser(task.getId(), user);
 
     }
 
     @Test
-    void shouldReturnPagedUserTasks(){
-        //Arrange
-        User newUser = new User();
-        newUser.setId(1L);
-        newUser.setName("PepeWithTasks");
+    void shouldReturnPagedUserTasks() {
+        // Arrange
+        User user = new User();
+        user.setId(1L);
+        user.setName("PepeWithTasks");
 
         Task task1 = new Task();
         task1.setId(1L);
-        task1.setOwnerShip(newUser);
+        task1.setUser(user);
         task1.setName("Task 1");
+        task1.setStatus(Status.PENDING);
 
         Task task2 = new Task();
         task2.setId(2L);
+        task2.setUser(user);
         task2.setName("Task 2");
-
-        TaskResponse taskResponse1 = new TaskResponse(
-                1L,
-                newUser,
-                "Task 1",
-                null,
-                Status.PENDING,
-                null);
-
-        TaskResponse taskResponse2 = new TaskResponse(
-                2L,
-                newUser,
-                "Task 2",
-                null,
-                Status.PENDING,
-                null);
+        task2.setStatus(Status.PENDING);
 
         Page<Task> taskPage = new PageImpl<>(List.of(task1, task2));
 
-        when(taskRepository.findByUserIdAndStatus(eq(newUser.getId()), any(Status.class),any(Pageable.class)))
-                .thenReturn(taskPage);
 
-        when(taskMapper.toResponse(task1)).thenReturn(taskResponse1);
-        when(taskMapper.toResponse(task2)).thenReturn(taskResponse2);
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
-        //Act
+        when(taskRepository.findByUserAndStatus(
+                eq(user),
+                eq(Status.PENDING),
+                any(Pageable.class))
+        ).thenReturn(taskPage);
+
+        // Act
         Page<TaskResponse> result = taskService.findUserTasks(
-                newUser.getId(),
+                user.getId(),
                 "PENDING",
                 0,
                 10,
                 "createdAt",
-                "desc");
+                "desc"
+        );
 
-        //Assert
+        // Assert
+        assertThat(result).isNotNull();
         assertThat(result.getContent()).hasSize(2);
         assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getContent().get(0).name()).isEqualTo("Task 1");
+        assertThat(result.getContent().get(1).name()).isEqualTo("Task 2");
 
-        verify(taskRepository).findByUserIdAndStatus(eq(newUser.getId()), any(Status.class), any(Pageable.class));
-
+        verify(taskRepository).findByUserAndStatus(
+                eq(user),
+                eq(Status.PENDING),
+                any(Pageable.class)
+        );
     }
+
 
     @Test
-    void shouldCreateANewTaskAndReturnAResponse(){
-        //Arrange
-        User newUser = new User();
-        newUser.setId(1L);
-        newUser.setName("PepeWithTasks");
+    void shouldCreateANewTaskAndReturnAResponse() {
+        // Arrange
+        User user = new User();
+        user.setId(1L);
+        user.setName("PepeWithTasks");
 
-        CreateTaskRequest createTaskRequest = new CreateTaskRequest();
-        createTaskRequest.setName("Dejar de jugar Lol");
+        CreateTaskRequest request = new CreateTaskRequest();
+        request.setName("Dejar de jugar Lol");
 
-        Task newTask = new Task();
-        newTask.setId(1L);
-        newTask.setOwnerShip(newUser);
-        newTask.setName("Dejar de jugar Lol");
-        newTask.setDescription(null);
+        Task savedTask = new Task();
+        savedTask.setId(1L);
+        savedTask.setUser(user);
+        savedTask.setName("Dejar de jugar Lol");
+        savedTask.setStatus(Status.PENDING);
 
-        TaskResponse taskResponse = new TaskResponse(
-                1L,
-                newUser,
-                "Dejar de jugar Lol",
-                null,
-                Status.PENDING,
-                newTask.getCreatedAt());
+        when(taskRepository.save(any(Task.class))).thenReturn(savedTask);
 
-        when(taskMapper.toEntity(newUser ,createTaskRequest)).thenReturn(newTask);
-        when(taskMapper.toResponse(newTask)).thenReturn(taskResponse);
-        when(taskRepository.save(newTask)).thenReturn(newTask);
+        // Act
+        TaskResponse result = taskService.createTask(user, request);
 
-        //Act
-        TaskResponse result = taskService.createTask(newUser, createTaskRequest);
-
-        //Assert
+        // Assert
         assertThat(result).isNotNull();
-        assertThat(result.id()).isEqualTo(newTask.getId());
+        assertThat(result.id()).isEqualTo(1L);
         assertThat(result.taskStatus()).isEqualTo(Status.PENDING);
-        assertThat(result.ownership()).isEqualTo(newUser);
 
-        verify(taskMapper).toEntity(newUser, createTaskRequest);
-        verify(taskMapper).toResponse(newTask);
+        verify(taskRepository).save(any(Task.class));
     }
+
 
     @Test
     void shouldUpdateStatusWhenUserOwnsTask() {
@@ -170,22 +153,17 @@ public class TaskServiceTest {
 
         Task task = new Task();
         task.setId(taskId);
-        task.setOwnerShip(owner);
+        task.setUser(owner);
         task.setStatus(Status.PENDING);
 
         UpdateTaskRequest request = new UpdateTaskRequest();
         request.setTaskStatus(Status.IN_PROGRESS);
 
-        when(taskRepository.findByIdAndOwnerShipId(userId, taskId))
+        when(taskRepository.findByIdAndUser(taskId, owner))
                 .thenReturn(Optional.of(task));
+
         when(taskRepository.save(task)).thenReturn(task);
-        when(taskMapper.toResponse(task)).thenReturn(new TaskResponse(
-                10L,
-                owner,
-                null,
-                null,
-                Status.IN_PROGRESS,
-                null));
+        when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
 
         // Act
         TaskResponse result = taskService.updateTaskStatus(userId, taskId, request);
@@ -194,43 +172,54 @@ public class TaskServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.taskStatus()).isEqualTo(Status.IN_PROGRESS);
 
-        verify(taskRepository).findByIdAndOwnerShipId(userId, taskId);
+        verify(taskRepository).findByIdAndUser(taskId, owner);
     }
+
     @Test
     void shouldThrowExceptionWhenUserDoesNotOwnTask() {
         // Arrange
         Long userId = 1L;
         Long taskId = 10L;
+
+        User user = new User();
+        user.setId(userId);
+
         UpdateTaskRequest request = new UpdateTaskRequest();
         request.setTaskStatus(Status.DONE);
 
-        when(taskRepository.findByIdAndOwnerShipId(userId, taskId))
+        when(userRepository.findById(eq(userId)))
+                .thenReturn(Optional.of(user));
+
+        when(taskRepository.findByIdAndUser(eq(taskId), eq(user)))
                 .thenReturn(Optional.empty());
 
         // Act & Assert
         assertThatThrownBy(() ->
                 taskService.updateTaskStatus(userId, taskId, request)
         ).isInstanceOf(ForbiddenException.class)
-                .hasMessageContaining("permission");
+                .hasMessageContaining("Task not found or you don't have permission");
 
-        verify(taskRepository).findByIdAndOwnerShipId(userId, taskId);
-        verify(taskRepository, never()).save(any());
+        verify(taskRepository, never()).save(any(Task.class));
     }
+
 
     @Test
     void shouldDeleteTaskWhenUserIsTheOwner(){
         //Arrange
-        Long userId = 1L;
+        User user = new User();
+
         Task task = new Task();
         task.setId(10L);
+        task.setUser(user);
 
-        when(taskRepository.findByIdAndOwnerShipId(userId, task.getId())).thenReturn(Optional.of(task));
+        when(taskRepository.findByIdAndUser(task.getId(), user)).thenReturn(Optional.of(task));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
         //Act
-        taskService.deleteTask(userId, task.getId());
+        taskService.deleteTask(user.getId(), task.getId());
 
         //Assert
-        verify(taskRepository).findByIdAndOwnerShipId(userId, task.getId());
+        verify(taskRepository).findByIdAndUser(task.getId(), user);
         verify(taskRepository).delete(task);
     }
 
@@ -240,18 +229,20 @@ public class TaskServiceTest {
         Long userId = 1L;
         Long taskId = 10L;
 
-        when(taskRepository.findByIdAndOwnerShipId(userId, taskId))
+        User user = new User();
+        user.setId(userId);
+
+        when(userRepository.findById(eq(userId)))
+                .thenReturn(Optional.of(user));
+
+        when(taskRepository.findByIdAndUser(eq(taskId), eq(user)))
                 .thenReturn(Optional.empty());
 
         // Act & Assert
         assertThatThrownBy(() -> taskService.deleteTask(userId, taskId))
                 .isInstanceOf(ForbiddenException.class)
-                .hasMessageContaining("permission");
+                .hasMessageContaining("Task not found or you don't have permission");
 
-        verify(taskRepository).findByIdAndOwnerShipId(userId, taskId);
         verify(taskRepository, never()).delete(any(Task.class));
     }
-
-
-
 }

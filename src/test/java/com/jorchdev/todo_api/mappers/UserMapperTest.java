@@ -5,8 +5,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jorchdev.todo_api.dto.request.UpdateUserRequest;
 import com.jorchdev.todo_api.dto.response.UserResponse;
+import com.jorchdev.todo_api.entities.Task;
 import com.jorchdev.todo_api.entities.User;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class UserMapperTest {
     UserMapper userMapper = new UserMapper();
@@ -29,6 +33,11 @@ public class UserMapperTest {
         newUser.setId(1L);
         newUser.setName("Pepe");
 
+        List<Task> tasks = new ArrayList<>();
+        tasks.add(new Task());
+
+        newUser.setUserTasks(tasks);
+
         UserResponse result = userMapper.toResponse(newUser);
 
         assertThat(result).isNotNull();
@@ -45,9 +54,8 @@ public class UserMapperTest {
         UpdateUserRequest updateUserRequest = new UpdateUserRequest();
         updateUserRequest.setName("Pepito");
 
-        User updatedUser = userMapper.toUpdateEntity(updateUserRequest);
+        userMapper.updateEntity(user, updateUserRequest, "");
 
-        assertThat(updatedUser).isNotNull();
-        assertThat(updatedUser.getName()).isEqualTo("Pepito");
+        assertThat(user.getName()).isEqualTo("Pepito");
     }
 }

@@ -1,6 +1,5 @@
 package com.jorchdev.todo_api.entities;
 
-import com.jorchdev.todo_api.dto.response.TaskResponse;
 import com.jorchdev.todo_api.entities.enums.Roles;
 import jakarta.persistence.*;
 
@@ -26,7 +25,7 @@ public class User {
     private Roles role = Roles.USER;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TaskResponse> userTasks;
+    private List<Task> userTasks;
 
     public User(){}
 
@@ -44,10 +43,10 @@ public class User {
         return name;
     }
 
-    public void setUserTasks(List<TaskResponse> userTasks) {
+    public void setUserTasks(List<Task> userTasks) {
         this.userTasks = userTasks;
     }
-    public List<TaskResponse> getUserTasks() {
+    public List<Task> getUserTasks() {
         return userTasks;
     }
 
