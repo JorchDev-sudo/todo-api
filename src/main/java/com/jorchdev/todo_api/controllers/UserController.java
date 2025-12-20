@@ -14,7 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/todo_api/users")
+@RequestMapping("/api/users")
 public class UserController {
     private final UserService userService;
     private final SecurityUtils securityUtils;
