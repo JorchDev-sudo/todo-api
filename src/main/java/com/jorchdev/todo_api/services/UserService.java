@@ -9,6 +9,7 @@ import com.jorchdev.todo_api.exceptions.ForbiddenException;
 import com.jorchdev.todo_api.mappers.UserMapper;
 import com.jorchdev.todo_api.repositories.UserRepository;
 import com.jorchdev.todo_api.utils.DeleteAccountConstants;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -34,7 +35,7 @@ public class UserService {
 
     public UserResponse findUser(Long userId){
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ForbiddenException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         return userMapper.toResponse(user);
     }
@@ -55,23 +56,12 @@ public class UserService {
         return usersPage.map(userMapper::toResponse);
     }
 
-    public UserResponse createUser(CreateUserRequest userRequest){
-        if (userRequest.name == null || userRequest.name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Name cannot be empty");
-        }
-
-        User newUser = userMapper.toCreateEntity(userRequest);
-        User savedUser = userRepository.save(newUser);
-
-        return userMapper.toResponse(savedUser);
-    }
-
     @Transactional
     public UserResponse updateUser(User currentUser,
                                    UpdateUserRequest request) {
 
         User user = userRepository.findByEmail(currentUser.getEmail())
-                .orElseThrow(() -> new ForbiddenException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         String hashedPassword = passwordEncoder.encode(request.password);
 
@@ -84,7 +74,6 @@ public class UserService {
 
     @Transactional
     public void deleteCurrentUser(DeleteAccountRequest request, User user) {
-
         if (!DeleteAccountConstants.CONFIRMATION_PHRASE
                 .equals(request.getConfirmation())) {
 
@@ -93,7 +82,15 @@ public class UserService {
             );
         }
 
-        userRepository.delete(user);
+        try {
+            userRepository.delete(user);
+        } catch (EntityNotFoundException e){
+            e.getMessage();
+
+        } catch (Exception e){
+            e.getMessage();
+
+        }
     }
 
 }

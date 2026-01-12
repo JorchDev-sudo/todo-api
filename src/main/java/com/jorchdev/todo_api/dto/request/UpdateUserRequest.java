@@ -7,18 +7,14 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class UpdateUserRequest {
-    @NotBlank
     public String name;
 
-    @NotBlank
     @Email
     public String email;
 
-    @NotBlank
     @Size(min = 6, max = 32)
     public String password;
 
-    @NotNull
     public Roles role;
 
     public UpdateUserRequest(){}

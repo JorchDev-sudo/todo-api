@@ -1,7 +1,5 @@
 package com.jorchdev.todo_api.dto.response;
 
-import com.jorchdev.todo_api.entities.Task;
-
 import java.util.List;
 
 

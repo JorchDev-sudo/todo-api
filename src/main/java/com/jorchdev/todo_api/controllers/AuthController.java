@@ -5,9 +5,11 @@ import com.jorchdev.todo_api.dto.request.RegisterRequest;
 import com.jorchdev.todo_api.dto.response.RegisterResponse;
 import com.jorchdev.todo_api.dto.response.LoginResponse;
 import com.jorchdev.todo_api.services.AuthService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -25,7 +27,8 @@ public class AuthController {
         try {
             RegisterResponse response = authService.register(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (RuntimeException e) {
+
+        } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
@@ -35,13 +38,14 @@ public class AuthController {
         try {
             LoginResponse response = authService.login(request);
             return ResponseEntity.ok(response);
-        } catch (Exception e) {
+
+        } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
 
     @GetMapping("/test")
     public ResponseEntity<String> test() {
-        return ResponseEntity.ok("Auth endpoint funcionando correctamente");
+        return ResponseEntity.ok("Auth working correctly");
     }
 }

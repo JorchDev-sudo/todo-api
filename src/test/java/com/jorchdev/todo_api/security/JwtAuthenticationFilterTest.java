@@ -45,13 +45,10 @@ class JwtAuthenticationFilterTest {
 
     @Test
     void shouldNotAuthenticateWithoutToken() throws Exception {
-        // Arrange
         when(request.getHeader("Authorization")).thenReturn(null);
 
-        // Act
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
-        // Assert
         verify(filterChain).doFilter(request, response);
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
@@ -59,9 +56,8 @@ class JwtAuthenticationFilterTest {
 
     @Test
     void shouldAuthenticateUserWithValidToken() throws Exception {
-        // Arrange
         String token = "valid-jwt-token";
-        String email = "john@example.com";
+        String email = "user@example.com";
 
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         when(jwtService.extractEmail(token)).thenReturn(email);
@@ -75,10 +71,8 @@ class JwtAuthenticationFilterTest {
         when(userDetailsService.loadUserByUsername(email)).thenReturn(userDetails);
         when(jwtService.isTokenValid(token, userDetails)).thenReturn(true);
 
-        // Act
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
-        // Assert
         verify(filterChain).doFilter(request, response);
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
     }

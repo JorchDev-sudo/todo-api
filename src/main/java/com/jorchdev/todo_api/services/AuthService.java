@@ -31,7 +31,7 @@ public class AuthService {
     public RegisterResponse register(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email already exists");
+            throw new IllegalStateException("Email already exists");
         }
 
         User user = new User();
