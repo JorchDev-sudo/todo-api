@@ -1,94 +1,211 @@
 ✅ Todo API
 
-Todo API es una API REST desarrollada con Spring Boot para la gestión de tareas (To-Do), con soporte para autenticación segura mediante JWT, documentación automática con Swagger/OpenAPI, paginación, manejo global de errores y tests unitarios.
+📌 Overview
 
-Este proyecto forma parte de mi portafolio backend y está orientado a demostrar buenas prácticas en arquitectura, seguridad, testing y configuración profesional de una API moderna en Java.
+Todo API is a production-style REST API built with Spring Boot for managing tasks (To-Do), featuring JWT-based authentication, role-aware access control, clean layered architecture, and unit-tested business logic.
 
-🚀 Funcionalidades:
+This project is part of my backend portfolio and is intentionally designed to reflect real-world Spring Boot practices, focusing on:
 
-🔐 Autenticación y autorización con JWT (stateless)
-👤 Gestión de usuarios
-📝 Gestión de tareas (Tasks)
-🔗 Relación One User → Many Tasks
-📄 Paginación y ordenamiento
-📦 Uso de DTOs para requests y responses
-🧠 Manejo global de excepciones
-📑 Documentación interactiva con Swagger
-🧪 Tests unitarios con Mockito (standalone)
-🌍 Configuración por perfiles (dev / prod)
+Security
 
-Arquitectura en capas bien definida:
+Maintainability
+
+Testability
+
+Clear separation of concerns
+
+Professional configuration and documentation
+
+🚀 Key Features
+
+🔐 Stateless authentication & authorization using JWT
+
+👤 User management
+
+📝 Task management 
+
+🔗 One User → Many Tasks relationship
+
+📄 Pagination, sorting and filtering
+
+📦 DTO-based API design (request / response separation)
+
+🧠 Centralized global exception handling
+
+📑 Interactive API documentation (Swagger / OpenAPI)
+
+🧪 Unit testing with Mockito (standalone)
+
+🌍 Environment-based configuration (dev / prod)
+
+🏗️ Architecture
+
+The application follows a layered architecture, commonly used in professional Spring Boot projects:
 
 controllers
- ├── UserController
+
+ └── UserController
  └── TaskController
 
 services
- ├── UserService
+
+ └── UserService
  └── TaskService
 
 repositories
- ├── UserRepository
+
+ └── UserRepository
  └── TaskRepository
 
 entities
- ├── User
+
+ └── User
  └── Task
 
 dto
- ├── request
+
+ └── request
  └── response
 
 security
- ├── JwtService
- ├── JwtAuthenticationFilter
+
+ └── JwtService
+ └── JwtAuthenticationFilter
  └── SecurityConfig
 
 exceptions
- ├── GlobalExceptionHandler
+
+ └── GlobalExceptionHandler
  └── custom exceptions
 
-🛠️ Stack tecnológico:
+
+✔ Clear responsibility boundaries
+✔ Business logic isolated from controllers
+✔ Easily testable services
+
+🛠️ Tech Stack
 
 Java 17
-Spring Boot 3.5.8
+
+Spring Boot 3.2.5
+
+Spring Ecosystem
+
 Spring Web
+
 Spring Data JPA
+
 Spring Security
-JWT (jjwt)
+
+Security
+
+JWT
+
+Custom security filters
+
+Stateless session management
+
+Persistence
+
 Hibernate
-Flyway
-H2 (dev)
-PostgreSQL (prod)
-Swagger / OpenAPI (springdoc)
-JUnit 5
-Mockito (standalone)
+
+H2 (development)
+
+PostgreSQL (production)
+
+Flyway migrations
+
+Tooling & Quality
+
 Maven
 
-🔐 Seguridad:
+JUnit 5
 
-Autenticación basada en JWT
-Filtros personalizados de seguridad
-Configuración stateless
-Protección de endpoints por usuario autenticado
-Manejo correcto de errores 401 / 403
+Mockito (standalone)
 
-⚙️ Configuración y ejecución:
+Swagger / OpenAPI (springdoc)
 
-1️⃣ Clonar el repositorio
-git clone https://github.com/tu-usuario/todo-api.git
+🔐 Security Design
+
+JWT-based authentication (stateless)
+
+Custom authentication filter
+
+Endpoint protection per authenticated user
+
+Proper HTTP status handling:
+
+401 Unauthorized
+
+403 Forbidden
+
+Centralized security error handling
+
+This setup mirrors how authentication is typically implemented in real backend systems.
+
+📑 API Documentation
+
+Interactive API documentation is available via Swagger:
+
+http://localhost:8080/swagger-ui.html
+
+
+or
+
+http://localhost:8080/swagger-ui/index.html
+
+⚙️ Running the Application:
+
+1️⃣ Clone the repository
+git clone https://github.com/JorchDev-sudo/todo-api.git
 cd todo-api
 
-2️⃣ Variables de entorno requeridas
-JWT_SECRET
+2️⃣ Required Environment Variables
+JWT_SECRET=your_secret_key
 
-3️⃣ Ejecutar la aplicación
+
+This variable can be configured via:
+
+System environment variables
+
+IDE Configurations
+
+Deployment environment
+
+3️⃣ Run the application
 mvn spring-boot:run
 
-🌍 Perfiles de ejecución
-Perfil	Base de datos
-dev	H2 
-prod	PostgreSQL y Flyway
+🌍 Spring Profiles:
+Profile	Database
+dev	H2 (in-memory)
+prod	PostgreSQL + Flyway
 
-Activación del perfil:
+Activate a profile with:
+
 spring.profiles.active=dev
+
+🧪 Testing Strategy
+
+Focus on unit tests for controllers and services
+
+Mockito standalone
+
+Coverage includes:
+
+Successful flows
+
+Validation errors
+
+Authorization constraints
+
+Exception handling paths
+
+This testing approach emphasizes business logic reliability rather than heavy integration tests.
+
+📬 Contact
+
+If you’d like to discuss this project or my backend experience:
+
+💼 LinkedIn:www.linkedin.com/in/jorge-cotera-lópez-24180438a
+
+📧 Email: jorgecoteralopez@gmail.com
