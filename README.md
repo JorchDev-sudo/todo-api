@@ -5,6 +5,7 @@ Todo API es una API REST desarrollada con Spring Boot para la gestión de tareas
 Este proyecto forma parte de mi portafolio backend y está orientado a demostrar buenas prácticas en arquitectura, seguridad, testing y configuración profesional de una API moderna en Java.
 
 🚀 Funcionalidades:
+
 🔐 Autenticación y autorización con JWT (stateless)
 👤 Gestión de usuarios
 📝 Gestión de tareas (Tasks)
@@ -17,6 +18,7 @@ Este proyecto forma parte de mi portafolio backend y está orientado a demostrar
 🌍 Configuración por perfiles (dev / prod)
 
 Arquitectura en capas bien definida:
+
 controllers
  ├── UserController
  └── TaskController
@@ -46,7 +48,8 @@ exceptions
  ├── GlobalExceptionHandler
  └── custom exceptions
 
-🛠️ Stack tecnológico
+🛠️ Stack tecnológico:
+
 Java 17
 Spring Boot 3.5.8
 Spring Web
@@ -62,14 +65,15 @@ JUnit 5
 Mockito (standalone)
 Maven
 
-🔐 Seguridad
+🔐 Seguridad:
+
 Autenticación basada en JWT
 Filtros personalizados de seguridad
 Configuración stateless
 Protección de endpoints por usuario autenticado
 Manejo correcto de errores 401 / 403
 
-⚙️ Configuración y ejecución
+⚙️ Configuración y ejecución:
 
 1️⃣ Clonar el repositorio
 git clone https://github.com/tu-usuario/todo-api.git
