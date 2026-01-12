@@ -7,7 +7,6 @@ import com.jorchdev.todo_api.entities.Task;
 import com.jorchdev.todo_api.entities.User;
 import com.jorchdev.todo_api.entities.enums.Status;
 import com.jorchdev.todo_api.exceptions.ForbiddenException;
-import com.jorchdev.todo_api.mappers.TaskMapper;
 import com.jorchdev.todo_api.repositories.TaskRepository;
 import com.jorchdev.todo_api.repositories.UserRepository;
 import org.junit.jupiter.api.Test;

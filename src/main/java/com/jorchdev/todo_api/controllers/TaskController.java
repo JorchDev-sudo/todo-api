@@ -3,8 +3,11 @@ package com.jorchdev.todo_api.controllers;
 import com.jorchdev.todo_api.dto.request.CreateTaskRequest;
 import com.jorchdev.todo_api.dto.request.UpdateTaskRequest;
 import com.jorchdev.todo_api.dto.response.TaskResponse;
+import com.jorchdev.todo_api.entities.User;
+import com.jorchdev.todo_api.exceptions.ForbiddenException;
 import com.jorchdev.todo_api.services.TaskService;
 import com.jorchdev.todo_api.utils.SecurityUtils;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -26,7 +29,13 @@ public class TaskController {
 
     @PostMapping
     public ResponseEntity<TaskResponse> createTask(@Valid @RequestBody CreateTaskRequest request) {
-        TaskResponse response = taskService.createTask(securityUtils.getCurrentUser(),request);
+        User user = securityUtils.getCurrentUser();
+        if (user == null) {
+            throw new ForbiddenException("Unauthorized");
+        }
+
+
+        TaskResponse response = taskService.createTask(user,request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -38,12 +47,23 @@ public class TaskController {
             @RequestParam(defaultValue = "createdAt")String sortBy,
             @RequestParam(defaultValue = "desc")String direction){
 
-        return ResponseEntity.ok(taskService.findUserTasks(securityUtils.getCurrentUser().getId(), filterBy, page, size, sortBy, direction));
+        User user = securityUtils.getCurrentUser();
+        if (user == null) {
+            throw new ForbiddenException("Unauthorized");
+        }
+
+
+        return ResponseEntity.ok(taskService.findUserTasks(user.getId(), filterBy, page, size, sortBy, direction));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<TaskResponse> getTaskById(@PathVariable Long id) {
-        TaskResponse response = taskService.findTaskById(securityUtils.getCurrentUser().getId(), id);
+        User user = securityUtils.getCurrentUser();
+        if (user == null) {
+            throw new ForbiddenException("Unauthorized");
+        }
+
+        TaskResponse response = taskService.findTaskById(user.getId(), id);
         return ResponseEntity.ok(response);
     }
 
@@ -52,14 +72,25 @@ public class TaskController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateTaskRequest request
     ) {
+        User user = securityUtils.getCurrentUser();
+        if (user == null) {
+            throw new ForbiddenException("Unauthorized");
+        }
 
-        TaskResponse response = taskService.updateTaskStatus(securityUtils.getCurrentUser().getId(), id, request);
+
+        TaskResponse response = taskService.updateTaskStatus(user.getId(), id, request);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
-        taskService.deleteTask(securityUtils.getCurrentUser().getId() , id);
+        User user = securityUtils.getCurrentUser();
+        if (user == null) {
+            throw new ForbiddenException("Unauthorized");
+        }
+
+
+        taskService.deleteTask(user.getId(), id);
         return ResponseEntity.noContent().build();
     }
 }

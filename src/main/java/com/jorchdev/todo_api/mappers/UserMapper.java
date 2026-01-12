@@ -8,7 +8,6 @@ import com.jorchdev.todo_api.entities.Task;
 import com.jorchdev.todo_api.entities.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;

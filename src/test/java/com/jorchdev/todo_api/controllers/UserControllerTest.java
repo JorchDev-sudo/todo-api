@@ -1,75 +1,155 @@
-/*
 package com.jorchdev.todo_api.controllers;
 
-import com.jorchdev.todo_api.dto.request.CreateUserRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jorchdev.todo_api.dto.request.DeleteAccountRequest;
+import com.jorchdev.todo_api.dto.request.UpdateUserRequest;
 import com.jorchdev.todo_api.dto.response.UserResponse;
+import com.jorchdev.todo_api.entities.User;
+import com.jorchdev.todo_api.entities.enums.Roles;
 import com.jorchdev.todo_api.services.UserService;
-import jakarta.persistence.EntityNotFoundException;
+import com.jorchdev.todo_api.utils.DeleteAccountConstants;
+import com.jorchdev.todo_api.utils.SecurityUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.RequestBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.mock.http.server.reactive.MockServerHttpRequest.get;
-import static org.springframework.mock.http.server.reactive.MockServerHttpRequest.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(UserController.class)
+@ExtendWith(MockitoExtension.class)
 class UserControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
+    @Mock
     private UserService userService;
 
-    @Test
-    void shouldReturn404WhenUserNotFound() throws Exception {
-        // Arrange: Mockeas el Service
-        when(userService.findUser(999L))
-                .thenThrow(new EntityNotFoundException("User not found"));
+    @Mock
+    private SecurityUtils securityUtils;
 
-        // Act: Simulas un HTTP GET request
-        mockMvc.perform((RequestBuilder) get("/api/users/999"))
-                // Assert: Verificas la respuesta HTTP
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.message").value("User not found"));
+    @InjectMocks
+    private UserController userController;
+
+    private MockMvc mockMvc;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @BeforeEach
+    void setup() {
+        mockMvc = MockMvcBuilders
+                .standaloneSetup(userController)
+                .build();
     }
 
+    // =========================
+    // GET ALL USERS
+    // =========================
+
     @Test
-    void shouldCreateUserSuccessfully() throws Exception {
-        // ARRANGE
-        CreateUserRequest request = new CreateUserRequest();
-        request.setName("John Doe");
+    void getAllUsers_shouldReturnOkAndInvokeService() throws Exception {
+        Page<UserResponse> page =
+                new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
 
-        UserResponse response = new UserResponse(1L, "John Doe", null);
+        when(userService.findPagedUsers(0, 10, "id", "asc"))
+                .thenReturn(page);
 
-        when(userService.createUser(any(CreateUserRequest.class)))
-                .thenReturn(response);
+        mockMvc.perform(get("/api/users"))
+                    .andExpect(status().isOk());
+        verify(userService).findPagedUsers(0, 10, "id", "asc");
+    }
 
-        // ACT & ASSERT
-        mockMvc.perform(post("/api/users")
+
+
+    // =========================
+    // GET USER BY ID
+    // =========================
+
+    @Test
+    void getUserById_shouldReturnUser() throws Exception {
+        UserResponse response = new UserResponse(1L, "example", null);
+
+        when(userService.findUser(1L)).thenReturn(response);
+
+        mockMvc.perform(get("/api/users/{id}", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.name").value("example"));
+    }
+
+    // =========================
+    // UPDATE USER
+    // =========================
+
+    @Test
+    void updateUser_shouldReturnUpdatedUser() throws Exception {
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setName("NewExample");
+        request.setRole(Roles.USER);
+        request.setPassword("password");
+        request.setEmail("example@email.com");
+
+        User currentUser = new User();
+        currentUser.setId(1L);
+        currentUser.setName("NewExample");
+        currentUser.setPassword("password");
+        currentUser.setRole(Roles.USER);
+        currentUser.setEmail("example@email.com");
+
+        UserResponse response = new UserResponse(1L, "NewExample", null);
+
+        when(securityUtils.getCurrentUser())
+                .thenReturn(currentUser);
+
+        when(userService.updateUser(
+                any(User.class),
+                any(UpdateUserRequest.class)
+        )).thenReturn(response);
+
+        mockMvc.perform(put("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                    {
-                        "name": "John Doe"
-                    }
+                        {
+                          "name": "NewExample"
+                        }
                     """))
-                .andExpect(status().isCreated())  // 201
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("John Doe"));
+                .andExpect(status().isOk());
 
-        // Verificar que el Service fue llamado
-        verify(userService).createUser(any(CreateUserRequest.class));
+        verify(securityUtils).getCurrentUser();
+        verify(userService).updateUser(any(User.class), any(UpdateUserRequest.class));
+    }
+
+
+    // =========================
+    // DELETE MY ACCOUNT
+    // =========================
+
+    @Test
+    void deleteMyAccount_shouldReturn204() throws Exception {
+        DeleteAccountRequest request = new DeleteAccountRequest();
+        request.setConfirmation(DeleteAccountConstants.CONFIRMATION_PHRASE);
+
+        User user = new User();
+        user.setName("example");
+
+        when(securityUtils.getCurrentUser()).thenReturn(user);
+
+        mockMvc.perform(delete("/api/users/me")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+
+                .andExpect(status().isNoContent());
     }
 }
-
- */

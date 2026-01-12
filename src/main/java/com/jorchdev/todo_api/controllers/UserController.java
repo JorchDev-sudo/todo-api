@@ -4,13 +4,17 @@ import com.jorchdev.todo_api.dto.request.CreateUserRequest;
 import com.jorchdev.todo_api.dto.request.DeleteAccountRequest;
 import com.jorchdev.todo_api.dto.request.UpdateUserRequest;
 import com.jorchdev.todo_api.dto.response.UserResponse;
+import com.jorchdev.todo_api.entities.User;
+import com.jorchdev.todo_api.exceptions.ForbiddenException;
 import com.jorchdev.todo_api.services.UserService;
 import com.jorchdev.todo_api.utils.SecurityUtils;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,13 +30,13 @@ public class UserController {
     }
 
     @GetMapping
-    public Page<UserResponse> getAllUsers(
+    public ResponseEntity<Page<UserResponse>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String direction){
 
-        return userService.findPagedUsers(page, size, sortBy, direction);
+        return ResponseEntity.ok(userService.findPagedUsers(page, size, sortBy, direction));
     }
 
     @GetMapping("/{id}")
@@ -41,21 +45,16 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    @PostMapping
-    public ResponseEntity<UserResponse> createUser(
-            @Valid @RequestBody CreateUserRequest request
-    ) {
-        UserResponse created = userService.createUser(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
-
-
     @PutMapping
     public ResponseEntity<UserResponse> updateUser(
             @Valid @RequestBody UpdateUserRequest request
     ) {
+        User user = securityUtils.getCurrentUser();
+        if (user == null) {
+            throw new ForbiddenException("Unauthorized");
+        }
 
-        UserResponse updated = userService.updateUser(securityUtils.getCurrentUser() ,request);
+        UserResponse updated = userService.updateUser(user ,request);
         return ResponseEntity.ok(updated);
     }
 
@@ -63,8 +62,12 @@ public class UserController {
     public ResponseEntity<Void> deleteMyAccount(
             @Valid @RequestBody DeleteAccountRequest request
     ) {
+        User user = securityUtils.getCurrentUser();
+        if (user == null) {
+            throw new ForbiddenException("Unauthorized");
+        }
 
-        userService.deleteCurrentUser(request, securityUtils.getCurrentUser());
+        userService.deleteCurrentUser(request, user);
 
         return ResponseEntity.noContent().build();
     }

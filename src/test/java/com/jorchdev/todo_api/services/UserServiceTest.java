@@ -1,13 +1,13 @@
 package com.jorchdev.todo_api.services;
 
-import com.jorchdev.todo_api.dto.request.CreateUserRequest;
-
+import com.jorchdev.todo_api.dto.request.DeleteAccountRequest;
 import com.jorchdev.todo_api.dto.request.UpdateUserRequest;
 import com.jorchdev.todo_api.dto.response.UserResponse;
 import com.jorchdev.todo_api.entities.User;
-import com.jorchdev.todo_api.exceptions.ForbiddenException;
 import com.jorchdev.todo_api.mappers.UserMapper;
 import com.jorchdev.todo_api.repositories.UserRepository;
+import com.jorchdev.todo_api.utils.DeleteAccountConstants;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,6 +15,7 @@ import org.mockito.Mock;
 
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,12 +33,14 @@ class UserServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    PasswordEncoder passwordEncoder;
+
     @InjectMocks
     private UserService userService;
 
     @Test
     void shouldReturnUser(){
-        //Arrange
         User user = new User();
         user.setId(1L);
 
@@ -45,27 +48,24 @@ class UserServiceTest {
 
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
         when(userMapper.toResponse(user)).thenReturn(new UserResponse(1L, null, null));
-        //Act
         UserResponse result = userService.findUser(id);
 
-        //Assert
         assertThat(result).isNotNull();
         assertThat(result.id()).isEqualTo(user.getId());
     }
 
     @Test
     void shouldFindAllPagedUsers(){
-        //Arrange
         User user1 = new User();
-        user1.setName("Pepe");
+        user1.setName("Example1");
         User user2 = new User();
-        user2.setName("Pipi");
+        user2.setName("Example2");
         User user3 = new User();
-        user3.setName("Popo");
+        user3.setName("Example3");
 
-        UserResponse userResponse1 = new UserResponse(1L, "Pepe", null);
-        UserResponse userResponse2 = new UserResponse(2L, "Pipi", null);
-        UserResponse userResponse3 = new UserResponse(3L, "Popo", null);
+        UserResponse userResponse1 = new UserResponse(1L, "Example1", null);
+        UserResponse userResponse2 = new UserResponse(2L, "Example2", null);
+        UserResponse userResponse3 = new UserResponse(3L, "Example3", null);
 
         List<User> allUsers = List.of(user1, user2, user3);
         Page<User> userPage = new PageImpl<>(allUsers);
@@ -77,14 +77,12 @@ class UserServiceTest {
         when(userMapper.toResponse(user2)).thenReturn(userResponse2);
         when(userMapper.toResponse(user3)).thenReturn(userResponse3);
 
-        //Act
         Page<UserResponse> result = userService.findPagedUsers(
                 0,
                 10,
                 "id",
                 "desc");
 
-        //Assert
         assertThat(result.getContent()).hasSize(3);
         assertThat(result.getTotalElements()).isEqualTo(3);
         assertThat(result.getTotalPages()).isEqualTo(1);
@@ -96,16 +94,13 @@ class UserServiceTest {
 
     @Test
     void shouldReturnEmptyListWhenNoUsersExist() {
-        //Arrange
         List<User> userList = new ArrayList<>();
         Page<User> userPage = new PageImpl<>(userList);
 
         when(userRepository.findAll(any(Pageable.class))).thenReturn(userPage);
 
-        //Act
         Page<UserResponse> result = userService.findPagedUsers(1, 1, "id", "desc");
 
-        //Assert
         assertThat(result.getContent()).isEmpty();
         assertThat(result.getTotalElements()).isEqualTo(0);
 
@@ -113,13 +108,10 @@ class UserServiceTest {
         verify(userMapper, never()).toResponse(any(User.class));
     }
 
-    //Remember to add to TaskServiceTest
     @Test
     void shouldThrowExceptionWhenSortFieldIsInvalid() {
-        // Arrange
         String invalidSortField = "invalidField";
 
-        // Act & Assert
         assertThatThrownBy(() ->
                 userService.findPagedUsers(0, 10, invalidSortField, "asc")
         )
@@ -130,110 +122,55 @@ class UserServiceTest {
     }
 
     @Test
-    void shouldCreateANewUserAndReturnAResponse() {
-
-        // Arrange
-        CreateUserRequest request = new CreateUserRequest();
-        request.setName("Pepe");
-
-        User mappedUser = new User();
-        mappedUser.setName("Pepe");
-
-        User savedUser = new User();
-        savedUser.setId(1L);
-        savedUser.setName("Pepe");
-
-        when(userMapper.toCreateEntity(request)).thenReturn(mappedUser);
-        when(userRepository.save(mappedUser)).thenReturn(savedUser);
-        when(userMapper.toResponse(savedUser)).thenReturn(new UserResponse(1L,"Pepe", null));
-
-        // Act
-        UserResponse response = userService.createUser(request);
-
-        // Assert
-        assertThat(response).isNotNull();
-        assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.name()).isEqualTo("Pepe");
-
-        // Verify
-        verify(userMapper).toCreateEntity(request);
-        verify(userMapper).toResponse(savedUser);
-        verify(userRepository).save(mappedUser);
-    }
-
-    @Test
     void shouldUpdateUserAndReturnAResponse() {
         User user = new User();
         user.setId(1L);
-        user.setName("Pepe");
+        user.setName("OldExample");
 
         UpdateUserRequest request = new UpdateUserRequest();
-        request.setName("Pepito");
+        request.setName("NewExample");
 
-        UserResponse response = new UserResponse(1L, "Pepito", null);
+        UserResponse response = new UserResponse(1L, "NewExample", null);
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(null)).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenReturn(user);
+
+        when(passwordEncoder.encode(request.password)).thenReturn("hashedPassword");
         when(userMapper.toResponse(any(User.class))).thenReturn(response);
 
         UserResponse result = userService.updateUser(user, request);
 
-        assertThat(result.name()).isEqualTo("Pepito");
+        assertThat(result.name()).isEqualTo("NewExample");
 
         verify(userRepository).save(user);
     }
 
-
     @Test
     void shouldThrowExceptionWhenUserNotFoundOrPrincipalDoesNotOwn() {
-        // Arrange
         User user = new User();
         user.setId(10L);
         UpdateUserRequest updateUserRequest = new UpdateUserRequest();
 
-        when(userRepository.findById(user.getId())).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.empty());
 
-        // Act and Assert
         assertThatThrownBy(() -> userService.updateUser(user, updateUserRequest))
-                .isInstanceOf(ForbiddenException.class)
+                .isInstanceOf(EntityNotFoundException.class)
                         .hasMessageContaining("User not found");
 
-        verify(userRepository).findById(user.getId());
+        verify(userRepository).findByEmail(user.getEmail());
     }
 
-    /*
     @Test
-    void shouldDeleteUser(){
-        //Arrange
-
+    void shouldDeleteUser() {
         User userToDelete = new User();
         userToDelete.setId(1L);
-        userToDelete.setName("Pepe");
+        userToDelete.setName("Example");
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(userToDelete));
+        DeleteAccountRequest request = new DeleteAccountRequest();
+        request.setConfirmation(DeleteAccountConstants.CONFIRMATION_PHRASE);
 
-        //Act
-        userService.deleteUser(userToDelete.getId());
+        userService.deleteCurrentUser(request, userToDelete);
 
-        //Assert
-        verify(userRepository).findById(userToDelete.getId());
-        verify(userRepository).deleteById(userToDelete.getId());
+        verify(userRepository).delete(userToDelete);
     }
-    @Test
-    void shouldThrowExceptionWhenUserNotFoundForDeleteOrPrincipalDoesNotOwn() {
-        // Arrange
-        Long userId = 10L;
-
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
-
-        // Act
-        assertThatThrownBy(() -> userService.deleteUser(userId))
-                .isInstanceOf(ForbiddenException.class)
-                        .hasMessageContaining("User not found or you are not the User");
-
-        //Assert
-        verify(userRepository).findById(userId);
-    }
-
-     */
 }
